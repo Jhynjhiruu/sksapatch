@@ -1,0 +1,16 @@
+[package]
+name = "sksapatch"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+bb = { version = "0.1.0", git = "https://github.com/Jhynjhiruu/bbrs.git" }
+clap = { version = "4.5.9", features = ["derive"] }
+crunch64 = "0.5.1"
+hex = "0.4.3"
+miniz_oxide = { version = "0.7.4", features = ["std"] }
+serde = { version = "1.0.204", features = ["derive"] }
+sha1 = { version = "0.10.6", default-features = false }
+soft-aes = "0.2.2"
+toml = "0.8.16"

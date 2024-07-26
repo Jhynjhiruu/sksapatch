@@ -1,0 +1,21 @@
+# Sigpatches for 1106, plus load osBbHackFlags from user.sys
+
+before_hash = "0059DEB22F85BC1C7BFCDB16FEBA6DD057548053"
+after_hash = "9CF53EAA926767587D02708A61256A94FB52F349"
+
+[sk]
+patches = [
+    { offset = 0x0C10, from = 0x14620054, to = 0x14630054 },
+    { offset = 0x0FEC, from = 0x2645FFDC, to = 0x27A50010 },
+    { offset = 0x161C, from = 0x02002821, to = 0x00042821 },
+    { offset = 0x33E4, from = 0x24A50004, to = 0x24850000 },
+]
+
+[sa2]
+patches = [
+    { offset = 0x00209C, from = 0x10400015, to = 0x00000000 },
+    { offset = 0x0020A4, from = 0x27B10020, to = 0x3C058000 },
+    { offset = 0x0020A8, from = 0x0220282D, to = 0x34A5038C },
+    { offset = 0x0020D8, from = 0x0220202D, to = 0x6624008E },
+    { offset = 0x01C248, from = 0x27A50304, to = 0x27A50100 },
+]
