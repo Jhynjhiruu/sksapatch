@@ -210,6 +210,9 @@ fn patch_sa2(
     if verbose {
         println!("Decrypting SA2 key");
     }
+
+    // SA2 gets decrypted using the keys from SA1's CMD, because, since there's no way for SA1 to set up
+    // the encryption hardware properly without access to the common key, it just leaves its own keys in place
     let key = aes_dec_cbc(&sa1_cmd.key, common_key, &sa1_cmd.common_cmd_iv, None)
         .expect("failed to decrypt SA2 key");
 
