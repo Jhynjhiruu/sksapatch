@@ -1,5 +1,5 @@
 use std::fs::{read, read_to_string, write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
 use bb::{bootrom_keys, BbAesIv, BbAesKey, CmdHead, HashHex, Virage2, BLOCK_SIZE};
@@ -33,6 +33,18 @@ struct Args {
     /// Verbose output
     #[arg(short, long)]
     verbose: bool,
+
+    /// Output decrypted patched SK
+    #[arg(long)]
+    sk_out: Option<PathBuf>,
+
+    /// Output decrypted patched SA
+    #[arg(long, visible_alias("sa1-out"))]
+    sa_out: Option<PathBuf>,
+
+    /// Output decrypted decompressed patched SA2
+    #[arg(long)]
+    sa2_out: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -107,11 +119,12 @@ impl Patch {
 }
 
 fn patch_sk(
-    patches: &[Patch],
+    patches: Option<&[Patch]>,
     sk: &[u8],
     key: &BbAesKey,
     iv: &BbAesIv,
     verbose: bool,
+    sk_out: Option<&Path>,
 ) -> Result<Vec<u8>> {
     if verbose {
         println!("Decrypting SK");
@@ -123,8 +136,18 @@ fn patch_sk(
         println!("Patching SK");
     }
 
-    for patch in patches {
-        patch.apply(&mut decrypted_sk, verbose)?;
+    if let Some(p) = patches {
+        for patch in p {
+            patch.apply(&mut decrypted_sk, verbose)?;
+        }
+    }
+
+    if let Some(path) = sk_out {
+        if verbose {
+            println!("Saving SK to {}", path.display());
+        }
+
+        write(path, &decrypted_sk)?;
     }
 
     if verbose {
@@ -135,11 +158,12 @@ fn patch_sk(
 }
 
 fn patch_sa(
-    patches: &[Patch],
+    patches: Option<&[Patch]>,
     sa: &[u8],
     cmd: &mut CmdHead,
     common_key: &BbAesKey,
     verbose: bool,
+    sa_out: Option<&Path>,
 ) -> Result<Vec<u8>> {
     if verbose {
         println!("Decrypting SA key");
@@ -177,8 +201,18 @@ fn patch_sa(
         println!("Patching SA");
     }
 
-    for patch in patches {
-        patch.apply(&mut decrypted_sa, verbose)?;
+    if let Some(p) = patches {
+        for patch in p {
+            patch.apply(&mut decrypted_sa, verbose)?;
+        }
+    }
+
+    if let Some(path) = sa_out {
+        if verbose {
+            println!("Saving SA to {}", path.display());
+        }
+
+        write(path, &decrypted_sa)?;
     }
 
     let mut sha = Sha1::new();
@@ -200,12 +234,13 @@ fn patch_sa(
 }
 
 fn patch_sa2(
-    patches: &[Patch],
+    patches: Option<&[Patch]>,
     sa2: &[u8],
     cmd: &mut CmdHead,
     sa1_cmd: &CmdHead,
     common_key: &BbAesKey,
     verbose: bool,
+    sa2_out: Option<&Path>,
 ) -> Result<Vec<u8>> {
     if verbose {
         println!("Decrypting SA2 key");
@@ -251,8 +286,18 @@ fn patch_sa2(
         println!("Patching SA2");
     }
 
-    for patch in patches {
-        patch.apply(&mut decompressed_sa2, verbose)?;
+    if let Some(p) = patches {
+        for patch in p {
+            patch.apply(&mut decompressed_sa2, verbose)?;
+        }
+    }
+
+    if let Some(path) = sa2_out {
+        if verbose {
+            println!("Saving SA2 to {}", path.display());
+        }
+
+        write(path, &decrypted_sa2)?;
     }
 
     if verbose {
@@ -310,6 +355,8 @@ fn main() -> Result<()> {
             hex::encode_upper(hash),
             patch_file.before_hash.unwrap().to_uppercase()
         ));
+    } else if args.verbose && patch_file.before_hash.is_some() {
+        println!("Provided file hash matches expected");
     }
 
     let bootrom = read(&args.bootrom)?;
@@ -366,33 +413,37 @@ fn main() -> Result<()> {
 
     // patching goes here
 
-    let sk = if let Some(kernel) = patch_file.sk {
-        &patch_sk(&kernel.patches, sk, &sk_key, &sk_iv, args.verbose)?
-    } else {
-        sk
-    };
+    let sk = &patch_sk(
+        patch_file.sk.as_ref().map(|k| k.patches.as_slice()),
+        sk,
+        &sk_key,
+        &sk_iv,
+        args.verbose,
+        args.sk_out.as_deref(),
+    )?;
 
-    let sa1 = if let Some(sysapp) = patch_file.sa {
-        &patch_sa(&sysapp.patches, sa1, &mut sa1_cmd, common_key, args.verbose)?
-    } else {
-        sa1
-    };
+    let sa1 = &patch_sa(
+        patch_file.sa.as_ref().map(|s| s.patches.as_slice()),
+        sa1,
+        &mut sa1_cmd,
+        common_key,
+        args.verbose,
+        args.sa_out.as_deref(),
+    )?;
 
-    let sa2 = if let Some(sysapp2) = patch_file.sa2 {
-        sa2.map(|s| {
+    let sa2 = sa2
+        .map(|s| {
             patch_sa2(
-                &sysapp2.patches,
+                patch_file.sa2.as_ref().map(|s2| s2.patches.as_slice()),
                 s,
                 sa2_cmd.as_mut().unwrap(),
                 &sa1_cmd,
                 common_key,
                 args.verbose,
+                args.sa2_out.as_deref(),
             )
         })
-        .transpose()?
-    } else {
-        sa2.map(Into::into)
-    };
+        .transpose()?;
 
     let mut outfile = vec![];
     outfile.extend(sk);
@@ -426,10 +477,12 @@ fn main() -> Result<()> {
 
     if !after_matches {
         return Err(anyhow!(
-            "Provided file hash does not match expected (got {}, expected {})",
+            "Output file hash does not match expected (got {}, expected {})",
             hex::encode_upper(hash),
             patch_file.after_hash.unwrap().to_uppercase()
         ));
+    } else if args.verbose && patch_file.after_hash.is_some() {
+        println!("Output file hash matches expected");
     }
 
     println!("Done!");

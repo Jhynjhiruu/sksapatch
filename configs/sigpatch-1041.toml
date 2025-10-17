@@ -1,0 +1,24 @@
+# Sigpatches for 1041 to allow for modified 00000000.app
+
+before_hash = "E71353CE3B8733F62D5E7F1D2829F544A8A78850"
+after_hash = "9CFFED417CFFCC2C97E9E43B4DACF486B2EA6D9C"
+
+[sk]
+patches = [
+    { offset = 0x000C10, from = 0x14620054, to = 0x14630054 },
+    { offset = 0x000FEC, from = 0x2645FFDC, to = 0x27A50010 },
+    { offset = 0x00161C, from = 0x02002821, to = 0x00042821 },
+    { offset = 0x0033E4, from = 0x24A50004, to = 0x24850000 },
+]
+
+[sa]
+patches = [
+    # Ignore skVerifyHash result on the CMD
+    { offset = 0x30B0, from = 0x10400005, to = 0x10000005 },
+
+    # Ignore SHA1 hash comparison 1
+    { offset = 0x325C, from = 0x1440007A, to = 0x00000000 },
+
+    # Ignore SHA1 hash comparison 2
+    { offset = 0x33A0, from = 0x54400029, to = 0x00000000 },
+]

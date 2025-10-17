@@ -1,0 +1,16 @@
+# Standard sigpatches to apply to SKSA 1062, for keeping
+# load times consistent with stock firmware
+
+before_hash = "D62A77002F8A3B755EBF0C9B9856C1D36C07C3C6"
+after_hash = "2832B696B4FEEDFCD4E6FD4519EF7F1433BF563E"
+
+[sk]
+patches = [
+    { offset = 0x000C10, from = 0x14620054, to = 0x14630054 },
+    { offset = 0x000FEC, from = 0x2645FFDC, to = 0x27A50010 },
+    { offset = 0x00161C, from = 0x02002821, to = 0x00042821 },
+    { offset = 0x0033E4, from = 0x24A50004, to = 0x24850000 },
+]
+
+[sa1]
+patches = [{ offset = 0x0230E8, from = 0x27A50304, to = 0x27A50100 }]

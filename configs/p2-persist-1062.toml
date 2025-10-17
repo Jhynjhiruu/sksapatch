@@ -1,0 +1,34 @@
+﻿# Sigpatches for 1062, plus do not touch osBbHackFlags except on boot
+
+before_hash = "D62A77002F8A3B755EBF0C9B9856C1D36C07C3C6"
+
+# Checking hashes is optional
+after_hash = "FB6C968E51F58CE17EBA689CCAF5C77271F69918"
+
+[sk]
+patches = [
+    { offset = 0x0C10, from = 0x14620054, to = 0x14630054 },
+    { offset = 0x0FEC, from = 0x2645FFDC, to = 0x27A50010 },
+    { offset = 0x161C, from = 0x02002821, to = 0x00042821 },
+    { offset = 0x33E4, from = 0x24A50004, to = 0x24850000 },
+]
+
+[sa1]
+patches = [
+    # This ↓↓↓↓ is the patch that makes the redirection persistent
+    { offset = 0x0010A4, from = 0xAC20038C, to = 0x00000000 },
+
+    # This ↓↓↓↓ is the patch that jumps to the extra code added below
+    { offset = 0x00103C, from = 0x01400008, to = 0x0810D835 },
+
+    # This ↓↓↓↓ is the extra code that fixes the crash
+    { offset = 0x021A94, from = 0x2402000F, to = 0x308100FC },
+    { offset = 0x021A98, from = 0x3C08A430, to = 0x14200002 },
+    { offset = 0x021A9C, from = 0x35080014, to = 0x3C028000 },
+    { offset = 0x021AA0, from = 0x8D090000, to = 0xAC40038C },
+    { offset = 0x021AA4, from = 0x00000000, to = 0x01400008 },
+    { offset = 0x021AA8, from = 0x03E00008, to = 0x00000000 },
+
+    # (This one's for the sigpatches)
+    { offset = 0x0230E8, from = 0x27A50304, to = 0x27A50100 }
+]
