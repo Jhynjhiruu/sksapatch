@@ -297,7 +297,7 @@ fn patch_sa2(
             println!("Saving SA2 to {}", path.display());
         }
 
-        write(path, &decrypted_sa2)?;
+        write(path, &decompressed_sa2)?;
     }
 
     if verbose {
